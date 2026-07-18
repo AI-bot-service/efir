@@ -42,7 +42,7 @@
     "react-native-webrtc": "124.0.7",
     "react-native-webview": "13.13.5",
     "react-native-worklets-core": "github:jitsi/react-native-worklets-core#8c5dfab2a5907305da8971696a781b60f0f9cb18",
-    "zustand": "5.0.2"
+    "zustand": "4.5.5"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

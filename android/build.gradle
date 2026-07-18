@@ -6,6 +6,9 @@ buildscript {
         targetSdkVersion = 35
         ndkVersion = "27.1.12297006"
         kotlinVersion = "2.0.21"
+        // Требуется @jitsi/react-native-sdk (его android/build.gradle читает
+        // rootProject.ext.gradlePluginVersion). Совпадает с AGP для RN 0.79.7.
+        gradlePluginVersion = "8.8.2"
     }
     repositories {
         google()

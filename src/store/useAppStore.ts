@@ -1,0 +1,139 @@
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { QualityProfile } from '../jitsi/config';
+
+// Домен НЕ зашит в код (репозиторий публичный). Вводится при активации.
+export const DEFAULT_SERVER = '';
+export const DEFAULT_AUTH_URL = '';
+
+export type Route = 'onboarding' | 'home' | 'settings' | 'meeting';
+
+export interface RecentRoom {
+  name: string;
+  ts: number;
+}
+
+interface AppState {
+  // сохраняемое
+  onboarded: boolean;
+  serverUrl: string;
+  authUrl: string;
+  displayName: string;
+  profile: QualityProfile;
+  startWithVideoMuted: boolean;
+  startWithAudioMuted: boolean;
+  recentRooms: RecentRoom[];
+
+  // транзиентное
+  route: Route;
+  activeRoom: string | null;
+
+  // действия
+  setServerUrl: (v: string) => void;
+  setAuthUrl: (v: string) => void;
+  setDisplayName: (v: string) => void;
+  setProfile: (v: QualityProfile) => void;
+  setStartWithVideoMuted: (v: boolean) => void;
+  setStartWithAudioMuted: (v: boolean) => void;
+  completeOnboarding: () => void;
+  resetAccess: () => void;
+  navigate: (r: Route) => void;
+  joinRoom: (name: string) => void;
+  leaveMeeting: () => void;
+  removeRecent: (name: string) => void;
+}
+
+const MAX_RECENT = 8;
+
+export const useAppStore = create<AppState>()(
+  persist(
+    (set, get) => ({
+      onboarded: false,
+      serverUrl: DEFAULT_SERVER,
+      authUrl: DEFAULT_AUTH_URL,
+      displayName: '',
+      profile: 'balanced',
+      startWithVideoMuted: false,
+      startWithAudioMuted: false,
+      recentRooms: [],
+
+      route: 'onboarding',
+      activeRoom: null,
+
+      setServerUrl: (v) => set({ serverUrl: normalizeServer(v) }),
+      setAuthUrl: (v) => set({ authUrl: normalizeServer(v) }),
+      setDisplayName: (v) => set({ displayName: v }),
+      setProfile: (v) => set({ profile: v }),
+      setStartWithVideoMuted: (v) => set({ startWithVideoMuted: v }),
+      setStartWithAudioMuted: (v) => set({ startWithAudioMuted: v }),
+
+      completeOnboarding: () => set({ onboarded: true, route: 'home' }),
+      resetAccess: () =>
+        set({ onboarded: false, route: 'onboarding', recentRooms: [], activeRoom: null }),
+      navigate: (r) => set({ route: r }),
+
+      joinRoom: (name) => {
+        const room = sanitizeRoom(name);
+        if (!room) return;
+        const now = Date.now();
+        const rest = get().recentRooms.filter((r) => r.name !== room);
+        set({
+          activeRoom: room,
+          route: 'meeting',
+          recentRooms: [{ name: room, ts: now }, ...rest].slice(0, MAX_RECENT),
+        });
+      },
+
+      leaveMeeting: () => set({ activeRoom: null, route: 'home' }),
+      removeRecent: (name) =>
+        set({ recentRooms: get().recentRooms.filter((r) => r.name !== name) }),
+    }),
+    {
+      name: 'efir-store',
+      storage: createJSONStorage(() => AsyncStorage),
+      partialize: (s) => ({
+        onboarded: s.onboarded,
+        serverUrl: s.serverUrl,
+        authUrl: s.authUrl,
+        displayName: s.displayName,
+        profile: s.profile,
+        startWithVideoMuted: s.startWithVideoMuted,
+        startWithAudioMuted: s.startWithAudioMuted,
+        recentRooms: s.recentRooms,
+      }),
+      onRehydrateStorage: () => (state) => {
+        // после гидрации — на нужный стартовый экран
+        if (state) state.route = state.onboarded ? 'home' : 'onboarding';
+      },
+    },
+  ),
+);
+
+export function normalizeServer(v: string): string {
+  let s = v.trim().replace(/\/+$/, '');
+  if (!s) return DEFAULT_SERVER;
+  if (!/^https?:\/\//i.test(s)) s = 'https://' + s;
+  return s;
+}
+
+/** Имя комнаты: без пробелов и небезопасных символов (Jitsi трактует их в URL). */
+export function sanitizeRoom(v: string): string {
+  return v
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\p{L}\p{N}\-_]/gu, '')
+    .slice(0, 64);
+}
+
+/** Случайный «позывной» комнаты — легко продиктовать голосом. */
+export function generateRoomName(): string {
+  const a = ['tihiy', 'yarkiy', 'bystriy', 'smeliy', 'zvonkiy', 'volniy', 'chetkiy', 'zhiviy'];
+  const b = ['efir', 'signal', 'volna', 'kanal', 'punkt', 'krug', 'sbor', 'kontur'];
+  const n = Math.floor(100 + Math.random() * 900);
+  return `${pick(a)}-${pick(b)}-${n}`;
+}
+
+function pick<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}

@@ -1,0 +1,12 @@
+{
+  "extends": "@react-native/typescript-config/tsconfig.json",
+  "compilerOptions": {
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@jitsi/react-native-sdk": ["./types/jitsi-react-native-sdk.d.ts"]
+    }
+  },
+  "include": ["App.tsx", "index.js", "src/**/*", "types/**/*"],
+  "exclude": ["node_modules", "android", "ios", "__tests__"]
+}

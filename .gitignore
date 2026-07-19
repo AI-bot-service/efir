@@ -50,6 +50,9 @@ android/app/efir-release.keystore
 *.apk
 *.aab
 
+# локальный конфиг с реальным адресом сервера (в публичный репо не попадает)
+src/config/server.ts
+
 # fastlane
 #
 # It is recommended to not store the screenshots in the git repo. Instead, use fastlane to re-generate the

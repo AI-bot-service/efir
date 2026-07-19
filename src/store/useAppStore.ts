@@ -1,12 +1,15 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { QualityProfile } from '../jitsi/config';
+import { EMBEDDED_SERVER, EMBEDDED_AUTH_URL } from '../config/server';
+import type { Invite } from '../invite/invite';
 
-// Домен НЕ зашит в код (репозиторий публичный). Вводится при активации.
-export const DEFAULT_SERVER = '';
-export const DEFAULT_AUTH_URL = '';
+// Реальный домен НЕ в публичном коде: значения берутся из src/config/server.ts
+// (в .gitignore). Их же может переопределить ссылка-приглашение при активации.
+export const DEFAULT_SERVER = normalizeServer(EMBEDDED_SERVER);
+export const DEFAULT_AUTH_URL = normalizeServer(EMBEDDED_AUTH_URL);
 
-export type Route = 'onboarding' | 'home' | 'settings' | 'meeting';
+export type Route = 'onboarding' | 'home' | 'settings' | 'meeting' | 'invite';
 
 export interface RecentRoom {
   name: string;
@@ -28,6 +31,8 @@ interface AppState {
   route: Route;
   activeRoom: string | null;
   hydrated: boolean;
+  pendingCode: string | null; // код из ссылки-приглашения (префилл онбординга)
+  pendingRoom: string | null; // комната из ссылки — войти после активации
 
   // действия
   setServerUrl: (v: string) => void;
@@ -42,6 +47,8 @@ interface AppState {
   joinRoom: (name: string) => void;
   leaveMeeting: () => void;
   removeRecent: (name: string) => void;
+  applyInvite: (inv: Invite) => void;
+  clearPending: () => void;
 }
 
 const MAX_RECENT = 8;
@@ -60,6 +67,8 @@ export const useAppStore = create<AppState>()((set, get) => ({
   route: 'onboarding',
   activeRoom: null,
   hydrated: false,
+  pendingCode: null,
+  pendingRoom: null,
 
   setServerUrl: (v) => set({ serverUrl: normalizeServer(v) }),
   setAuthUrl: (v) => set({ authUrl: normalizeServer(v) }),
@@ -88,6 +97,33 @@ export const useAppStore = create<AppState>()((set, get) => ({
   leaveMeeting: () => set({ activeRoom: null, route: 'home' }),
   removeRecent: (name) =>
     set({ recentRooms: get().recentRooms.filter((r) => r.name !== name) }),
+
+  // Приглашение из ссылки/QR: подставляем адреса сервера; код и комнату
+  // держим транзиентно. Новый гость → онбординг с префиллом. Уже активирован
+  // на том же сервере → сразу в комнату.
+  applyInvite: (inv) => {
+    const server = normalizeServer(inv.server);
+    const authUrl = normalizeServer(inv.authUrl);
+    const room = inv.room ? sanitizeRoom(inv.room) : null;
+    const s = get();
+    // Уже активирован на этом сервере — не разлогиниваем, лишь ведём в комнату.
+    if (s.onboarded && server === s.serverUrl) {
+      set({ authUrl });
+      if (room) get().joinRoom(room);
+      else set({ route: 'home' });
+      return;
+    }
+    // Новый гость (или другой сервер) — префилл онбординга кодом из ссылки.
+    set({
+      serverUrl: server,
+      authUrl,
+      pendingCode: inv.code.trim() || null,
+      pendingRoom: room,
+      onboarded: false,
+      route: 'onboarding',
+    });
+  },
+  clearPending: () => set({ pendingCode: null, pendingRoom: null }),
 }));
 
 // --- Явное сохранение в AsyncStorage (без zustand/persist — надёжнее с RN) ---

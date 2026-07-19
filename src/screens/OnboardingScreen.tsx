@@ -2,31 +2,39 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Screen, Button, TextField, SignalRing } from '../components';
 import { colors, space, font, type } from '../theme/tokens';
-import { useAppStore, normalizeServer } from '../store/useAppStore';
+import { useAppStore } from '../store/useAppStore';
 import { activateWithCode, AuthError } from '../auth/authService';
 
+/** Короткий человекочитаемый хост сервера — для строки «куда подключаемся». */
+function serverHost(url: string): string {
+  return url.replace(/^https?:\/\//i, '').replace(/\/.*$/, '');
+}
+
 export function OnboardingScreen() {
-  const { setDisplayName, setServerUrl, setAuthUrl, completeOnboarding } = useAppStore();
+  const { setDisplayName, completeOnboarding, clearPending } = useAppStore();
   const store = useAppStore.getState();
+  // Адреса сервера уже заданы: зашитый конфиг или ссылка-приглашение.
+  const serverUrl = store.serverUrl;
+  const authUrl = store.authUrl;
+  const pendingRoom = useAppStore((s) => s.pendingRoom);
+
   const [name, setName] = useState(store.displayName);
-  const [server, setServer] = useState(store.serverUrl);
-  const [authUrl, setAuthUrlLocal] = useState(store.authUrl);
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState(store.pendingCode ?? '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canSubmit = !!name.trim() && !!server.trim() && !!authUrl.trim() && !!code.trim() && !busy;
+  const canSubmit = !!name.trim() && !!code.trim() && !!authUrl && !busy;
 
   const activate = async () => {
     setError(null);
     setBusy(true);
     try {
-      const auth = normalizeServer(authUrl);
-      await activateWithCode(auth, code, name);
+      await activateWithCode(authUrl, code, name);
       setDisplayName(name.trim());
-      setServerUrl(normalizeServer(server));
-      setAuthUrl(auth);
+      const room = pendingRoom;
+      clearPending();
       completeOnboarding();
+      if (room) useAppStore.getState().joinRoom(room);
     } catch (e) {
       setError(e instanceof AuthError ? e.message : 'Не удалось активировать доступ');
     } finally {
@@ -61,40 +69,22 @@ export function OnboardingScreen() {
           onChangeText={setCode}
           autoCapitalize="characters"
           autoCorrect={false}
-        />
-        <TextField
-          label="Сервер видеосвязи"
-          containerStyle={{ marginTop: space.x4 }}
-          placeholder="meet.example.ru"
-          value={server}
-          onChangeText={setServer}
-          autoCapitalize="none"
-          autoCorrect={false}
-          keyboardType="url"
-        />
-        <TextField
-          label="Сервер доступа"
-          containerStyle={{ marginTop: space.x4 }}
-          placeholder="auth.example.ru"
-          value={authUrl}
-          onChangeText={setAuthUrlLocal}
-          autoCapitalize="none"
-          autoCorrect={false}
-          keyboardType="url"
-          hint="Выдаётся вместе с кодом приглашения"
+          hint={serverUrl ? `Подключение: ${serverHost(serverUrl)}` : undefined}
         />
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <Button
-          label="Активировать доступ"
+          label={pendingRoom ? 'Войти в эфир' : 'Активировать доступ'}
           onPress={activate}
           disabled={!canSubmit}
           loading={busy}
           style={{ marginTop: space.x6 }}
         />
         <Text style={styles.note}>
-          Без кода приглашения вход невозможен. Микрофон и камеру спросим при первом звонке.
+          {store.pendingCode
+            ? 'Код подставлен из приглашения. Введите имя и продолжите.'
+            : 'Введите имя и код из приглашения. Микрофон и камеру спросим при первом звонке.'}
         </Text>
       </View>
     </Screen>

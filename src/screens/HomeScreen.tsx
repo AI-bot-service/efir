@@ -69,6 +69,12 @@ export function HomeScreen() {
           disabled={!sanitizeRoom(code)}
           style={{ marginTop: space.x3 }}
         />
+        <Button
+          label="Пригласить собеседника"
+          variant="ghost"
+          onPress={() => navigate('invite')}
+          style={{ marginTop: space.x2 }}
+        />
       </View>
 
       {/* recent */}

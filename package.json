@@ -32,6 +32,7 @@
     "react-native-keychain": "10.0.0",
     "react-native-orientation-locker": "github:jitsi/react-native-orientation-locker#fe095651d819cf134624f786b61fc8667862178a",
     "react-native-pager-view": "6.8.1",
+    "react-native-qrcode-svg": "6.3.21",
     "react-native-performance": "5.1.2",
     "react-native-safe-area-context": "5.6.1",
     "react-native-screens": "4.11.1",

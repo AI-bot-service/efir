@@ -1,12 +1,14 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { StyleSheet, View, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, ActivityIndicator, Linking } from 'react-native';
 import { useAppStore } from './src/store/useAppStore';
+import { decodeInvite } from './src/invite/invite';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { MeetingScreen } from './src/screens/MeetingScreen';
+import { InviteScreen } from './src/screens/InviteScreen';
 import { colors } from './src/theme/tokens';
 
 function Router() {
@@ -29,13 +31,33 @@ function Router() {
       return <SettingsScreen />;
     case 'meeting':
       return <MeetingScreen />;
+    case 'invite':
+      return <InviteScreen />;
     case 'home':
     default:
       return <HomeScreen />;
   }
 }
 
+function useInviteLinks() {
+  const hydrated = useAppStore((s) => s.hydrated);
+  const applyInvite = useAppStore((s) => s.applyInvite);
+
+  useEffect(() => {
+    if (!hydrated) return; // applyInvite опирается на onboarded — ждём загрузки
+    const handle = (url: string | null) => {
+      if (!url) return;
+      const inv = decodeInvite(url);
+      if (inv) applyInvite(inv);
+    };
+    Linking.getInitialURL().then(handle);
+    const sub = Linking.addEventListener('url', ({ url }) => handle(url));
+    return () => sub.remove();
+  }, [hydrated, applyInvite]);
+}
+
 export default function App() {
+  useInviteLinks();
   return (
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>

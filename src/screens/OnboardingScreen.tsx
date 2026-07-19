@@ -7,9 +7,10 @@ import { activateWithCode, AuthError } from '../auth/authService';
 
 export function OnboardingScreen() {
   const { setDisplayName, setServerUrl, setAuthUrl, completeOnboarding } = useAppStore();
-  const [name, setName] = useState('');
-  const [server, setServer] = useState('');
-  const [authUrl, setAuthUrlLocal] = useState('');
+  const store = useAppStore.getState();
+  const [name, setName] = useState(store.displayName);
+  const [server, setServer] = useState(store.serverUrl);
+  const [authUrl, setAuthUrlLocal] = useState(store.authUrl);
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -1,7 +1,7 @@
 import React from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { useAppStore } from './src/store/useAppStore';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
@@ -11,6 +11,17 @@ import { colors } from './src/theme/tokens';
 
 function Router() {
   const route = useAppStore((s) => s.route);
+  const hydrated = useAppStore((s) => s.hydrated);
+
+  // Ждём восстановления сохранённых данных, чтобы не мелькал онбординг.
+  if (!hydrated) {
+    return (
+      <View style={styles.splash}>
+        <ActivityIndicator color={colors.accent} />
+      </View>
+    );
+  }
+
   switch (route) {
     case 'onboarding':
       return <OnboardingScreen />;
@@ -36,4 +47,5 @@ export default function App() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
+  splash: { flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' },
 });

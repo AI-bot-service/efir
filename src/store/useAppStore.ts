@@ -28,6 +28,7 @@ interface AppState {
   // транзиентное
   route: Route;
   activeRoom: string | null;
+  hydrated: boolean;
 
   // действия
   setServerUrl: (v: string) => void;
@@ -60,6 +61,7 @@ export const useAppStore = create<AppState>()(
 
       route: 'onboarding',
       activeRoom: null,
+      hydrated: false,
 
       setServerUrl: (v) => set({ serverUrl: normalizeServer(v) }),
       setAuthUrl: (v) => set({ authUrl: normalizeServer(v) }),
@@ -103,8 +105,11 @@ export const useAppStore = create<AppState>()(
         recentRooms: s.recentRooms,
       }),
       onRehydrateStorage: () => (state) => {
-        // после гидрации — на нужный стартовый экран
-        if (state) state.route = state.onboarded ? 'home' : 'onboarding';
+        // Мутировать state здесь нельзя (не применится к стору) — ставим через setState.
+        useAppStore.setState({
+          hydrated: true,
+          route: state?.onboarded ? 'home' : 'onboarding',
+        });
       },
     },
   ),

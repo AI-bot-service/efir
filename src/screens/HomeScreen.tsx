@@ -2,12 +2,20 @@ import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet, FlatList } from 'react-native';
 import { Screen, Button, TextField, SignalRing, WaveBars } from '../components';
 import { colors, space, type, font, radius } from '../theme/tokens';
-import { useAppStore, generateRoomName, sanitizeRoom, type RecentRoom } from '../store/useAppStore';
+import {
+  useAppStore,
+  generateRoomName,
+  sanitizeRoom,
+  DEFAULT_ROOM,
+  type RecentRoom,
+} from '../store/useAppStore';
 
 export function HomeScreen() {
   const { displayName, recentRooms, joinRoom, removeRecent, navigate } = useAppStore();
   const [code, setCode] = useState('');
 
+  // Главное действие — постоянная комната группы; случайная остаётся запасным.
+  const enterHome = () => joinRoom(DEFAULT_ROOM || generateRoomName());
   const startNew = () => joinRoom(generateRoomName());
   const joinByCode = () => {
     const room = sanitizeRoom(code);
@@ -39,14 +47,17 @@ export function HomeScreen() {
       <View style={styles.hero}>
         <SignalRing size={260} active>
           <Pressable
-            onPress={startNew}
+            onPress={enterHome}
             accessibilityRole="button"
-            accessibilityLabel="Начать эфир"
+            accessibilityLabel={DEFAULT_ROOM ? `Войти в комнату ${DEFAULT_ROOM}` : 'Начать эфир'}
             style={({ pressed }) => [styles.startBtn, pressed && styles.startPressed]}>
             <Text style={styles.startPulse}>●</Text>
-            <Text style={styles.startLabel}>Начать{'\n'}эфир</Text>
+            <Text style={styles.startLabel}>
+              {DEFAULT_ROOM ? `Войти\nв эфир` : `Начать\nэфир`}
+            </Text>
           </Pressable>
         </SignalRing>
+        {DEFAULT_ROOM ? <Text style={styles.roomTag}>{DEFAULT_ROOM}</Text> : null}
       </View>
 
       {/* join by code — «настроить частоту» */}
@@ -70,10 +81,15 @@ export function HomeScreen() {
           style={{ marginTop: space.x3 }}
         />
         <Button
+          label="Новая разовая комната"
+          variant="ghost"
+          onPress={startNew}
+          style={{ marginTop: space.x2 }}
+        />
+        <Button
           label="Пригласить собеседника"
           variant="ghost"
           onPress={() => navigate('invite')}
-          style={{ marginTop: space.x2 }}
         />
       </View>
 
@@ -136,6 +152,13 @@ const styles = StyleSheet.create({
   gearGlyph: { color: colors.text, fontSize: 18 },
 
   hero: { alignItems: 'center', marginVertical: space.x6 },
+  roomTag: {
+    ...type.callsign,
+    fontSize: 15,
+    letterSpacing: 3,
+    color: colors.textMuted,
+    marginTop: space.x4,
+  },
   startBtn: {
     width: 148,
     height: 148,

@@ -4,7 +4,7 @@ import Clipboard from '@react-native-clipboard/clipboard';
 import QRCode from 'react-native-qrcode-svg';
 import { Screen, Button, TextField } from '../components';
 import { colors, space, type, font, radius, shadow } from '../theme/tokens';
-import { useAppStore, generateRoomName } from '../store/useAppStore';
+import { useAppStore, generateRoomName, DEFAULT_ROOM } from '../store/useAppStore';
 import { getInviteCode } from '../auth/secureStore';
 import { encodeInvite } from '../invite/invite';
 
@@ -16,7 +16,8 @@ import { encodeInvite } from '../invite/invite';
 export function InviteScreen() {
   const { serverUrl, authUrl, navigate } = useAppStore();
   const [code, setCode] = useState('');
-  const [room, setRoom] = useState('');
+  // По умолчанию приглашаем в постоянную комнату группы.
+  const [room, setRoom] = useState(DEFAULT_ROOM);
   const [copied, setCopied] = useState(false);
 
   // Свой код из Keychain — как значение по умолчанию для быстрого приглашения.
@@ -93,7 +94,7 @@ export function InviteScreen() {
           hint="По умолчанию — ваш код. Можно вставить гостевой, созданный на сервере."
         />
         <TextField
-          label="Комната (необязательно)"
+          label="Комната"
           containerStyle={{ marginTop: space.x4 }}
           mono
           placeholder={generateRoomName()}
@@ -101,7 +102,11 @@ export function InviteScreen() {
           onChangeText={setRoom}
           autoCapitalize="none"
           autoCorrect={false}
-          hint="Если указать — собеседник сразу войдёт в эту комнату."
+          hint={
+            DEFAULT_ROOM
+              ? `Постоянная комната группы — «${DEFAULT_ROOM}». Собеседник попадёт сразу в неё.`
+              : 'Если указать — собеседник сразу войдёт в эту комнату.'
+          }
         />
 
         <Button

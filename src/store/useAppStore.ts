@@ -1,13 +1,16 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { QualityProfile } from '../jitsi/config';
-import { EMBEDDED_SERVER, EMBEDDED_AUTH_URL } from '../config/server';
+import { EMBEDDED_SERVER, EMBEDDED_AUTH_URL, EMBEDDED_ROOM } from '../config/server';
 import type { Invite } from '../invite/invite';
 
 // Реальный домен НЕ в публичном коде: значения берутся из src/config/server.ts
 // (в .gitignore). Их же может переопределить ссылка-приглашение при активации.
 export const DEFAULT_SERVER = normalizeServer(EMBEDDED_SERVER);
 export const DEFAULT_AUTH_URL = normalizeServer(EMBEDDED_AUTH_URL);
+
+/** Постоянная комната группы (пусто — закреплённой комнаты нет). */
+export const DEFAULT_ROOM = sanitizeRoom(EMBEDDED_ROOM);
 
 export type Route = 'onboarding' | 'home' | 'settings' | 'meeting' | 'invite';
 

@@ -8,3 +8,7 @@
 
 export const EMBEDDED_SERVER = 'meet.example.ru';
 export const EMBEDDED_AUTH_URL = 'https://auth.example.ru';
+
+// Постоянная комната группы: все участники всегда попадают в одну и ту же,
+// договариваться об имени не нужно. Пустая строка — закреплённой комнаты нет.
+export const EMBEDDED_ROOM = 'family';
